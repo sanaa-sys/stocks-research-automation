@@ -68,7 +68,7 @@ namespace = "stock-descriptions"
 
 # Initialize the vector store
 hf_embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
-vectorstore = LangchainPinecone.from_existing_index(index_name=index_name, namespace=namespace)
+vectorstore = LangchainPinecone.from_existing_index(index_name=index_name, namespace=namespace,embedding=hf_embeddings)
 
 if user_query:
     # Retrieve relevant context
