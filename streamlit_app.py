@@ -64,14 +64,15 @@ user_query = st.text_input("Enter your stock search query:")
 # Initialize Pinecone
 pc = Pinecone(api_key=st.secrets["PINECONE_API_KEY"])
 index_name = "stocks"  # Make sure this matches your Pinecone index name
-
+namespace = "stock-descriptions"
 # Initialize the vector store
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-vectorstore = LangchainPinecone.from_existing_index(index_name=index_name, embedding=embeddings)
+hf_embeddings = HuggingFaceEmbeddings()
+vectorstore = LangchainPinecone.from_existing_index(index_name=index_name, embedding=hf_embeddings)
 
 if user_query:
     # Retrieve relevant context
-    relevant_docs = vectorstore.similarity_search(user_query, k=5, include_metadata=True)
+    user_query_embedding = get_huggingface_embeddings(user_query)
+    relevant_docs = vectorstore.similarity_search(user_query_embedding, k=10, include_metadata=True, namespace=namespace)
     context = "\n".join([doc.page_content for doc in relevant_docs])
 
     # Generate improved prompt using RAG
@@ -87,7 +88,8 @@ if user_query:
 
     # Search stocks based on the improved prompt
     with st.spinner("Searching for relevant stocks..."):
-        results = vectorstore.similarity_search_with_score(improved_prompt, k=5, include_metadata=True)
+        result_query_embedding = get_huggingface_embeddings(improved_prompt)
+        results = vectorstore.similarity_search_with_score(result_query_embedding, k=10, include_metadata=True, namespace=namespace)
     
     if results:
         st.subheader(f"Found {len(results)} relevant stocks:")
