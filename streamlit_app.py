@@ -2,6 +2,8 @@ import streamlit as st
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from pinecone import Pinecone
+from sentence_transformers import SentenceTransformer
+
 from langchain.vectorstores import Pinecone as LangchainPinecone
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.llms.base import LLM
@@ -11,6 +13,9 @@ import groq
 # Initialize Groq client
 groq_client = groq.Groq(api_key=st.secrets["GROQ_API_KEY"])
 
+def get_huggingface_embeddings(text, model_name="sentence-transformers/all-mpnet-base-v2"):
+    model = SentenceTransformer(model_name)
+    return model.encode(text)
 # Custom Groq LLM class
 class GroqLLM(LLM):
     model_name: str = "mixtral-8x7b-32768"
@@ -30,6 +35,7 @@ class GroqLLM(LLM):
 
 # Initialize Groq language model
 llm = GroqLLM()
+
 
 # Rest of the code remains the same
 prompt_template = PromptTemplate(
@@ -65,9 +71,9 @@ vectorstore = LangchainPinecone.from_existing_index(index_name=index_name, embed
 
 if user_query:
     # Retrieve relevant context
-    relevant_docs = vectorstore.similarity_search(user_query, k=3)
+    relevant_docs = vectorstore.similarity_search(user_query, k=5, include_metadata=True)
     context = "\n".join([doc.page_content for doc in relevant_docs])
-    
+
     # Generate improved prompt using RAG
     with st.spinner("Generating improved prompt..."):
         improved_prompt = chain.run({"query": user_query, "context": context})
@@ -81,7 +87,7 @@ if user_query:
 
     # Search stocks based on the improved prompt
     with st.spinner("Searching for relevant stocks..."):
-        results = vectorstore.similarity_search_with_score(improved_prompt, k=5)
+        results = vectorstore.similarity_search_with_score(improved_prompt, k=5, include_metadata=True)
     
     if results:
         st.subheader(f"Found {len(results)} relevant stocks:")
