@@ -8,17 +8,18 @@ from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.llms.base import LLM
 from typing import Any, List, Mapping, Optional
 import groq
+import os
 
 # Initialize Groq client
 groq_client = groq.Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 def get_huggingface_embeddings(text, model_name="sentence-transformers/all-mpnet-base-v2"):
     model = SentenceTransformer(model_name)
-    return model.encode(text)
+    return model.encode([text])[0].tolist()
 
 # Custom Groq LLM class
 class GroqLLM(LLM):
-    model_name: str = "mixtral-8x7b-32768"
+    model_name: str = "llama-3.1-70b-versatile"
     
     def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
         response = groq_client.chat.completions.create(
@@ -41,13 +42,13 @@ prompt_template = PromptTemplate(
     input_variables=["query", "context"],
     template="""
     You are an expert financial analyst. Given the following user query about stocks and the provided context, 
-    create an improved, detailed prompt that would help in finding the most relevant stocks. 
-    
-    User Query: {query}
+    create an improved, detailed response that answers the user's question.
     
     Context: {context}
     
-    Improved Prompt:
+    User Query: {query}
+    
+    Detailed Response:
     """
 )
 
@@ -67,50 +68,42 @@ namespace = "stock-descriptions"
 
 # Initialize the vector store
 hf_embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
-vectorstore = LangchainPinecone.from_existing_index(index_name=index_name, embedding=hf_embeddings, namespace=namespace)
+vectorstore = LangchainPinecone.from_existing_index(index_name=index_name, namespace=namespace)
 
 if user_query:
     # Retrieve relevant context
-    user_query_embedding = get_huggingface_embeddings(user_query)
-    relevant_docs = vectorstore.similarity_search_by_vector(user_query_embedding, k=10)
-    context = "\n".join([doc.page_content for doc in relevant_docs])
+    relevant_docs = vectorstore.similarity_search(user_query, k=5)
+    context = "\n\n".join([doc.page_content for doc in relevant_docs])
 
-    # Generate improved prompt using RAG
-    with st.spinner("Generating improved prompt..."):
-        improved_prompt = chain.run({"query": user_query, "context": context})
+    # Generate response using RAG
+    with st.spinner("Generating response..."):
+        response = chain.run({"query": user_query, "context": context})
     
     # Display results
-    st.subheader("Original Query:")
+    st.subheader("Query:")
     st.write(user_query)
     
-    st.subheader("Improved Prompt:")
-    st.write(improved_prompt)
+    st.subheader("Response:")
+    st.write(response)
 
-    # Search stocks based on the improved prompt
-    with st.spinner("Searching for relevant stocks..."):
-        result_query_embedding = get_huggingface_embeddings(improved_prompt)
-        results = vectorstore.similarity_search_with_score_by_vector(result_query_embedding, k=10)
-    
-    if results:
-        st.subheader(f"Found {len(results)} relevant stocks:")
-        for doc, score in results:
-            stock_info = doc.metadata
+    # Display relevant stocks
+    st.subheader("Relevant Stocks:")
+    for doc in relevant_docs:
+        stock_info = doc.metadata
             with st.expander(f"{stock_info['Name']} ({stock_info['Ticker']}) - Relevance: {1 - score:.2f}"):
                 st.write(f"Sector: {stock_info.get('Sector', 'N/A')}")
                 st.write(f"Industry: {stock_info.get('Industry', 'N/A')}")
-                st.write(f"Market Cap: ${stock_info.get('Market Cap', 'N/A'):,}")
-                st.write(f"Volume: {stock_info.get('Volume', 'N/A'):,}")
+                st.write(f"Market Cap: ${stock_info.get('Market Cap', 'N/A')}")
+                st.write(f"Volume: {stock_info.get('Volume', 'N/A')}")
                 st.write(f"Description: {doc.page_content}")
-    else:
-        st.write("No relevant stocks found.")
 
 # Add instructions
 st.sidebar.title("How to use")
 st.sidebar.write("""
-1. Enter a simple query about the types of stocks you're interested in.
-2. The app will use LangChain and Groq to generate an improved, more detailed prompt.
-3. The app will then use this improved prompt to search for relevant stocks in the Pinecone database.
-4. Results are displayed with expandable details for each stock.
+1. Enter a query about stocks or companies you're interested in.
+2. The app will use Pinecone to find relevant stock information.
+3. Groq's LLM will generate a detailed response based on the query and relevant information.
+4. Results are displayed with expandable details for each relevant stock.
 """)
 
 # Add a note about API usage and limitations
@@ -119,6 +112,5 @@ st.sidebar.write("""
 - This app uses the Groq API and Pinecone. Make sure you have set your API keys in the Streamlit secrets.
 - Be mindful of API usage costs.
 - The search is based on company descriptions and may not capture all relevant factors.
-- The relevance score is based on vector similarity and may not always perfectly align with human judgment.
 """)
 
