@@ -88,7 +88,7 @@ if user_query:
 
     # Display relevant stocks
     st.subheader("Relevant Stocks:")
-    for doc in relevant_docs:
+    for doc, score in relevant_docs:
         stock_info = doc.metadata
         with st.expander(f"{stock_info['Name']} ({stock_info['Ticker']}) - Relevance: {1 - score:.2f}"):
             st.write(f"Sector: {stock_info.get('Sector', 'N/A')}")
