@@ -14,7 +14,7 @@ groq_client = groq.Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 def get_huggingface_embeddings(text, model_name="sentence-transformers/all-mpnet-base-v2"):
     model = SentenceTransformer(model_name)
-    return model.encode([text])[0].tolist()  # Convert numpy array to list
+    return model.encode(text)
 
 # Custom Groq LLM class
 class GroqLLM(LLM):
