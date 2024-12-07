@@ -1,1 +1,7 @@
 streamlit
+langchain-community
+openai
+python-dotenv
+yfinance
+sentence-transformers
+scikit-learn
