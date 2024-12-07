@@ -90,12 +90,12 @@ if user_query:
     st.subheader("Relevant Stocks:")
     for doc in relevant_docs:
         stock_info = doc.metadata
-            with st.expander(f"{stock_info['Name']} ({stock_info['Ticker']}) - Relevance: {1 - score:.2f}"):
-                st.write(f"Sector: {stock_info.get('Sector', 'N/A')}")
-                st.write(f"Industry: {stock_info.get('Industry', 'N/A')}")
-                st.write(f"Market Cap: ${stock_info.get('Market Cap', 'N/A')}")
-                st.write(f"Volume: {stock_info.get('Volume', 'N/A')}")
-                st.write(f"Description: {doc.page_content}")
+        with st.expander(f"{stock_info['Name']} ({stock_info['Ticker']}) - Relevance: {1 - score:.2f}"):
+            st.write(f"Sector: {stock_info.get('Sector', 'N/A')}")
+            st.write(f"Industry: {stock_info.get('Industry', 'N/A')}")
+            st.write(f"Market Cap: ${stock_info.get('Market Cap', 'N/A')}")
+            st.write(f"Volume: {stock_info.get('Volume', 'N/A')}")
+            st.write(f"Description: {doc.page_content}")
 
 # Add instructions
 st.sidebar.title("How to use")
