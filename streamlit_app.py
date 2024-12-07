@@ -2,7 +2,6 @@ import streamlit as st
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
-from sentence_transformers import SentenceTransformer
 from pinecone import Pinecone
 from langchain.vectorstores import Pinecone as LangchainPinecone
 from langchain.embeddings import HuggingFaceEmbeddings
@@ -30,12 +29,6 @@ prompt_template = PromptTemplate(
 # Create the LLMChain
 chain = LLMChain(llm=llm, prompt=prompt_template)
 
-# Load the SentenceTransformer model
-@st.cache_resource
-def load_model():
-    return SentenceTransformer('all-MiniLM-L6-v2')
-
-model = load_model()
 
 # Streamlit app
 st.title("Advanced Stock Search App")
