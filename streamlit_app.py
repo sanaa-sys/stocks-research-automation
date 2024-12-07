@@ -3,7 +3,6 @@ from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from pinecone import Pinecone
 from sentence_transformers import SentenceTransformer
-
 from langchain.vectorstores import Pinecone as LangchainPinecone
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.llms.base import LLM
@@ -15,7 +14,8 @@ groq_client = groq.Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 def get_huggingface_embeddings(text, model_name="sentence-transformers/all-mpnet-base-v2"):
     model = SentenceTransformer(model_name)
-    return model.encode(text)
+    return model.encode([text])[0].tolist()  # Convert numpy array to list
+
 # Custom Groq LLM class
 class GroqLLM(LLM):
     model_name: str = "mixtral-8x7b-32768"
@@ -36,8 +36,7 @@ class GroqLLM(LLM):
 # Initialize Groq language model
 llm = GroqLLM()
 
-
-# Rest of the code remains the same
+# Define the prompt template
 prompt_template = PromptTemplate(
     input_variables=["query", "context"],
     template="""
@@ -65,14 +64,15 @@ user_query = st.text_input("Enter your stock search query:")
 pc = Pinecone(api_key=st.secrets["PINECONE_API_KEY"])
 index_name = "stocks"  # Make sure this matches your Pinecone index name
 namespace = "stock-descriptions"
+
 # Initialize the vector store
-hf_embeddings = HuggingFaceEmbeddings()
-vectorstore = LangchainPinecone.from_existing_index(index_name=index_name, embedding=hf_embeddings)
+hf_embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
+vectorstore = LangchainPinecone.from_existing_index(index_name=index_name, embedding=hf_embeddings, namespace=namespace)
 
 if user_query:
     # Retrieve relevant context
     user_query_embedding = get_huggingface_embeddings(user_query)
-    relevant_docs = vectorstore.similarity_search(user_query_embedding, k=10, include_metadata=True, namespace=namespace)
+    relevant_docs = vectorstore.similarity_search_by_vector(user_query_embedding, k=10)
     context = "\n".join([doc.page_content for doc in relevant_docs])
 
     # Generate improved prompt using RAG
@@ -89,7 +89,7 @@ if user_query:
     # Search stocks based on the improved prompt
     with st.spinner("Searching for relevant stocks..."):
         result_query_embedding = get_huggingface_embeddings(improved_prompt)
-        results = vectorstore.similarity_search_with_score(result_query_embedding, k=10, include_metadata=True, namespace=namespace)
+        results = vectorstore.similarity_search_with_score_by_vector(result_query_embedding, k=10)
     
     if results:
         st.subheader(f"Found {len(results)} relevant stocks:")
