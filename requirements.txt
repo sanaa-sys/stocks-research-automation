@@ -1,5 +1,6 @@
 streamlit
 langchain-community
+groq
 openai
 python-dotenv
 yfinance
