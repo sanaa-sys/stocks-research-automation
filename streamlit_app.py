@@ -51,7 +51,7 @@ if user_query:
     
     # Generate improved prompt using RAG
     with st.spinner("Generating improved prompt..."):
-        improved_prompt = chain.invoke({"query": user_query, "context": context})["text"]
+        improved_prompt = chain.run({"query": user_query, "context": context})
     
     # Display results
     st.subheader("Original Query:")
