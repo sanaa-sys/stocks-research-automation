@@ -1,17 +1,37 @@
 import streamlit as st
-from langchain.chat_models import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from pinecone import Pinecone
 from langchain.vectorstores import Pinecone as LangchainPinecone
 from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.llms.base import LLM
+from typing import Any, List, Mapping, Optional
+import groq
 
-# Initialize OpenAI language model
-llm = ChatOpenAI(model="gpt-3.5-turbo",
-                 openai_api_key=st.secrets["OPENAI_API_KEY"],
-                 temperature=0)
+# Initialize Groq client
+groq_client = groq.Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-# Define the prompt template
+# Custom Groq LLM class
+class GroqLLM(LLM):
+    model_name: str = "mixtral-8x7b-32768"
+    
+    def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
+        response = groq_client.chat.completions.create(
+            model=self.model_name,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1000,
+            temperature=0
+        )
+        return response.choices[0].message.content
+
+    @property
+    def _llm_type(self) -> str:
+        return "groq"
+
+# Initialize Groq language model
+llm = GroqLLM()
+
+# Rest of the code remains the same
 prompt_template = PromptTemplate(
     input_variables=["query", "context"],
     template="""
@@ -29,9 +49,8 @@ prompt_template = PromptTemplate(
 # Create the LLMChain
 chain = LLMChain(llm=llm, prompt=prompt_template)
 
-
 # Streamlit app
-st.title("Advanced Stock Search App")
+st.title("Advanced Stock Search App (Powered by Groq)")
 
 # User input
 user_query = st.text_input("Enter your stock search query:")
@@ -81,7 +100,7 @@ if user_query:
 st.sidebar.title("How to use")
 st.sidebar.write("""
 1. Enter a simple query about the types of stocks you're interested in.
-2. The app will use LangChain and OpenAI to generate an improved, more detailed prompt.
+2. The app will use LangChain and Groq to generate an improved, more detailed prompt.
 3. The app will then use this improved prompt to search for relevant stocks in the Pinecone database.
 4. Results are displayed with expandable details for each stock.
 """)
@@ -89,7 +108,7 @@ st.sidebar.write("""
 # Add a note about API usage and limitations
 st.sidebar.title("Notes")
 st.sidebar.write("""
-- This app uses the OpenAI API and Pinecone. Make sure you have set your API keys in the Streamlit secrets.
+- This app uses the Groq API and Pinecone. Make sure you have set your API keys in the Streamlit secrets.
 - Be mindful of API usage costs.
 - The search is based on company descriptions and may not capture all relevant factors.
 - The relevance score is based on vector similarity and may not always perfectly align with human judgment.
