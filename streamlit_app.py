@@ -159,7 +159,7 @@ if user_query:
     # Display relevant stocks
     st.subheader("Relevant Stocks:")
 
-    ticker_list = [item['id'] for item in context['matches']]
+ 
 
     stock_data = []
     for ticker in ticker_list:
