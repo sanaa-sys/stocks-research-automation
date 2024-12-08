@@ -117,7 +117,7 @@ if st.button("🚀 Find Stocks", type="primary"):
         # Initialize Pinecone
           
         pc = Pinecone(api_key=st.secrets["PINECONE_API_KEY"])
-        index_name = "company-stocks"
+        index_name = "stocks"
         namespace = "stock-descriptions"
         pinecone_index = pc.Index(index_name)
 
