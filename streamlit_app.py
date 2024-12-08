@@ -144,7 +144,7 @@ if user_query:
     # Retrieve relevant context
     relevant_docs = vectorstore.similarity_search(user_query, k=5)
     context = "\n\n".join([doc.page_content for doc in relevant_docs])
-    ticker_list = [item['id'] for item in context['relevant_docs']]
+    ticker_list = [item['id'] for item in relevant_docs['matches']]
     # Generate response using RAG
     with st.spinner("Generating response..."):
         response = chain.run({"query": user_query, "context": context})
