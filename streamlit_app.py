@@ -9,7 +9,7 @@ from langchain.llms.base import LLM
 from typing import Any, List, Mapping, Optional
 import groq
 import os
-
+import yfinance as yf
 # Initialize Groq client
 groq_client = groq.Groq(api_key=st.secrets["GROQ_API_KEY"])
 
