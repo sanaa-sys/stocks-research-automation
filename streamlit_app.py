@@ -10,6 +10,11 @@ from typing import Any, List, Mapping, Optional
 import groq
 import os
 import yfinance as yf
+import plotly.graph_objects as go
+from newsapi import NewsApiClient
+
+newsapi = NewsApiClient(api_key=st.secrets["NEWS_API_KEY"])
+
 # Initialize Groq client
 groq_client = groq.Groq(api_key=st.secrets["GROQ_API_KEY"])
 
@@ -205,20 +210,22 @@ if user_query:
             )
 
         st.plotly_chart(fig, use_container_width=True)
+    st.subheader("Latest Market News")
+    for ticker in ticker_list:
+        with st.spinner(f"Loading news for {ticker}..."):
+            news_items = newsapi.get_everything(
+                        q=f"{ticker} stock",
+                        language='en',
+                        sort_by='relevancy',
+                        page_size=3
+                    )
 
-# Add instructions
-st.sidebar.title("How to use")
-st.sidebar.write("""
-1. Enter a query about stocks or companies you're interested in.
-2. The app will use Pinecone to find relevant stock information.
-3. Groq's LLM will generate a detailed response based on the query and relevant information.
-4. Results are displayed with expandable details for each relevant stock.
-""")
+        st.write(f"**Latest news for {ticker}**")
+        for article in news_items['articles']:
+             with st.expander(f"{article['title']}"):
+                st.write(article['description'])
+                st.write(f"**Source:** {article['source']['name']} | **Published:** {article['publishedAt']}")
+                st.link_button("Read full article", article['url'])
 
-# Add a note about API usage and limitations
-st.sidebar.title("Notes")
-st.sidebar.write("""
-- This app uses the Groq API and Pinecone. Make sure you have set your API keys in the Streamlit secrets.
-- Be mindful of API usage costs.
-- The search is based on company descriptions and may not capture all relevant factors.
-""")
+
+
