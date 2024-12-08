@@ -51,6 +51,76 @@ prompt_template = PromptTemplate(
     Detailed Response:
     """
 )
+def fetch_stock_data(ticker):
+    stock = yf.Ticker(ticker)
+    info = stock.info
+    return {
+        "name": info.get("shortName", "N/A"),
+        "summary": info.get("longBusinessSummary", "N/A"),
+        "sector": info.get("sector", "N/A"),
+        "industry": info.get("industry", "N/A"),
+        "market_cap": info.get("marketCap", "N/A"),
+        "price": info.get("currentPrice", "N/A"),
+        "revenue_growth": info.get("revenueGrowth", "N/A"),
+        "recommendation": info.get("recommendationKey", "N/A"),
+    }
+
+def format_large_number(num):
+    if num == "N/A":
+        return "N/A"
+    try:
+        num = float(num)
+        if num >= 1e12:
+            return f"${num/1e12:.1f}T"
+        elif num >= 1e9:
+            return f"${num/1e9:.1f}B"
+        elif num >= 1e6:
+            return f"${num/1e6:.1f}M"
+        else:
+            return f"${num:,.0f}"
+    except:
+        return "N/A"
+
+def format_percentage(value):
+    if value == "N/A":
+        return "N/A"
+    try:
+        return f"{float(value)*100:.1f}%"
+    except:
+        return "N/A"
+
+def display_stock_card(data, ticker):
+    with st.container():
+        st.markdown("""
+            
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+            {data['name']} ({ticker})
+
+            {data['sector']} | {data['industry']}
+
+            {data['summary'][:150]}...
+        """, unsafe_allow_html=True)
+
+        metrics = [
+            {"label": "Market Cap", "value": format_large_number(data['market_cap'])},
+            {"label": "Price", "value": format_large_number(data['price'])},
+            {"label": "Growth", "value": format_percentage(data['revenue_growth'])},
+            {"label": "Rating", "value": data['recommendation'].upper()}
+        ]
+
+        cols = st.columns(4)
+        for col, metric in zip(cols, metrics):
+            with col:
+                st.metric(
+                    label=metric['label'],
+                    value=metric['value'],
+                    delta=None,
+                )
+
+        st.markdown("", unsafe_allow_html=True)
+
 
 # Create the LLMChain
 chain = LLMChain(llm=llm, prompt=prompt_template)
@@ -79,23 +149,60 @@ if user_query:
     with st.spinner("Generating response..."):
         response = chain.run({"query": user_query, "context": context})
     
-    # Display results
-    st.subheader("Query:")
-    st.write(user_query)
+
     
     st.subheader("Response:")
     st.write(response)
 
     # Display relevant stocks
     st.subheader("Relevant Stocks:")
-    for doc, score in relevant_docs:
-        stock_info = doc.metadata
-        with st.expander(f"{stock_info['Name']} ({stock_info['Ticker']}) - Relevance: {1 - score:.2f}"):
-            st.write(f"Sector: {stock_info.get('Sector', 'N/A')}")
-            st.write(f"Industry: {stock_info.get('Industry', 'N/A')}")
-            st.write(f"Market Cap: ${stock_info.get('Market Cap', 'N/A')}")
-            st.write(f"Volume: {stock_info.get('Volume', 'N/A')}")
-            st.write(f"Description: {doc.page_content}")
+
+    ticker_list = [item['id'] for item in context['matches']]
+
+    stock_data = []
+    for ticker in ticker_list:
+        data = fetch_stock_data(ticker)
+        if data:
+            stock_data.append(data)
+
+    for i in range(0, len(stock_data), 2):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            display_stock_card(stock_data[i], ticker_list[i])
+
+        if i + 1 < len(stock_data):
+            with col2:
+                display_stock_card(stock_data[i+1], ticker_list[i+1])
+
+        # Create comparison chart
+    if len(stock_data) > 0:
+        st.subheader("Stock Price Comparison")
+        fig = go.Figure()
+
+        for i, ticker in enumerate(ticker_list):
+            stock = yf.Ticker(ticker)
+            hist_data = stock.history(period="1y")
+
+                # Normalize the prices to percentage change
+            hist_data['Normalized'] = (hist_data['Close'] / hist_data['Close'].iloc[0] - 1) * 100
+
+            fig.add_trace(go.Scatter(
+                    x=hist_data.index,
+                    y=hist_data['Normalized'],
+                    name=f"{ticker}",
+                    mode='lines'
+                ))
+
+        fig.update_layout(
+                title="1-Year Price Performance Comparison (%)",
+                yaxis_title="Price Change (%)",
+                template="plotly_dark",
+                height=500,
+                showlegend=True
+            )
+
+        st.plotly_chart(fig, use_container_width=True)
 
 # Add instructions
 st.sidebar.title("How to use")
