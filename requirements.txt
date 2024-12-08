@@ -7,3 +7,4 @@ yfinance
 sentence-transformers
 scikit-learn
 pinecone
+newsapi-python
