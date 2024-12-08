@@ -8,3 +8,5 @@ sentence-transformers
 scikit-learn
 pinecone
 newsapi-python
+plotly
+matplotlib 
