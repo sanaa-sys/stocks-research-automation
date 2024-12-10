@@ -125,11 +125,11 @@ def display_stock_card(data, ticker):
             <h3>{data['name']} ({ticker})</h3>
             <p><strong>{data['sector']}</strong> | {data['industry']}</p>
             <p>{data['summary'][:150]}...</p>
-            <div style="display: flex; justify-content: space-between;">
-                <div><strong>Market Cap:</strong> {format_large_number(data['market_cap'])}</div>
-                <div><strong>Price:</strong> {format_large_number(data['price'])}</div>
-                <div><strong>Growth:</strong> {format_percentage(data['revenue_growth'])}</div>
-                <div><strong>Rating:</strong> {data['recommendation'].upper()}</div>
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
+                <div style="flex: 1 0 50%; margin-bottom: 5px;"><strong>Market Cap:</strong> {format_large_number(data['market_cap'])}</div>
+                <div style="flex: 1 0 50%; margin-bottom: 5px;"><strong>Price:</strong> {format_large_number(data['price'])}</div>
+                <div style="flex: 1 0 50%; margin-bottom: 5px;"><strong>Growth:</strong> {format_percentage(data['revenue_growth'])}</div>
+                <div style="flex: 1 0 50%; margin-bottom: 5px;"><strong>Rating:</strong> {data['recommendation'].upper()}</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -150,7 +150,7 @@ with col1:
         context = "\n\n".join([doc.page_content for doc in relevant_docs])
         
         # Extract ticker list from the metadata of relevant documents
-        ticker_list = [doc.metadata.get('Ticker', '') for doc in relevant_docs if 'Ticker' in doc.metadata]
+        ticker_list = [doc.metadata.get('ticker', '') for doc in relevant_docs if 'ticker' in doc.metadata]
         
         # Generate response using RAG
         with st.spinner("Generating response..."):
@@ -208,13 +208,8 @@ with col2:
     2. The app will use Pinecone to find relevant stock information.
     3. Groq's LLM will generate a detailed response based on the query and relevant information.
     4. Results are displayed with details for each relevant stock.
+    5. The search is based on company descriptions and may not capture all relevant factors.
     """)
 
-    # Add a note about API usage and limitations
-    st.subheader("Notes")
-    st.write("""
-    - This app uses the Groq API and Pinecone. Make sure you have set your API keys in the Streamlit secrets.
-    - Be mindful of API usage costs.
-    - The search is based on company descriptions and may not capture all relevant factors.
-    """)
+ 
 
