@@ -164,26 +164,14 @@ if user_query:
     # Display relevant stocks
     st.subheader("Relevant Stocks:")
 
- 
-
     stock_data = []
     for ticker in ticker_list:
         data = fetch_stock_data(ticker)
         if data:
-            stock_data.append(data)
+            display_stock_card(data, ticker)
 
-    for i in range(0, len(stock_data), 2):
-        col1, col2 = st.columns(2)
-
-        with col1:
-            display_stock_card(stock_data[i], ticker_list[i])
-
-        if i + 1 < len(stock_data):
-            with col2:
-                display_stock_card(stock_data[i+1], ticker_list[i+1])
-
-        # Create comparison chart
-    if len(stock_data) > 0:
+    # Create comparison chart
+    if len(ticker_list) > 0:
         st.subheader("Stock Price Comparison")
         fig = go.Figure()
 
@@ -226,3 +214,4 @@ if user_query:
                 st.write(article['description'])
                 st.write(f"**Source:** {article['source']['name']} | **Published:** {article['publishedAt']}")
                 st.link_button("Read full article", article['url'])
+
